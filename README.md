@@ -149,9 +149,7 @@ src/
 
 ### 🧠 Architecture Flow
 
-Request → Routes → Controllers → Services → Repositories → Database
-                        ↓
-                  Middlewares
+Request → Routes → Middlewares → Controllers → Services → Repositories → Database
 
 ---
 
