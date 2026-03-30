@@ -47,11 +47,6 @@ app.get("/", (_req: Request, res: Response) => {
     });
 });
 
-app.get("/test-db", async (_req, res) => {
-    await Todo.create({ title: "Hello DB" });
-    res.send("Inserted");
-});
-
 app.use(`${API_PREFIX}/auth`, authRoutes);
 app.use(`${API_PREFIX}/todos`, todoRoutes);
 
