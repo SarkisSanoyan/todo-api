@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { logger } from "../utils/logger";
 
 export class AppError extends Error {
     statusCode: number;
@@ -25,8 +26,15 @@ export const errorMiddleware = (
         message = err.message;
     }
 
-    // safer logging (avoid leaking sensitive data in production)
-    console.error(`[ERROR] ${message}`);
+    // 🔥 Structured logging
+    logger.error({
+        message,
+        statusCode,
+        method: req.method,
+        url: req.originalUrl,
+        ip: req.ip,
+        stack: err instanceof Error ? err.stack : undefined,
+    });
 
     return res.status(statusCode).json({
         message,

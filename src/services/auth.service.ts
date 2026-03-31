@@ -5,6 +5,7 @@ import {
     verifyRefreshToken,
 } from "../utils/token";
 import { hashToken } from "../utils/hash";
+import { logger } from "../utils/logger";
 import { randomUUID } from "crypto";
 import { AppError } from "../middleware/error.middleware";
 
@@ -23,6 +24,12 @@ export const authService = {
         meta?: { ip?: string; userAgent?: string }
     ) {
         const sessionId = randomUUID();
+
+        logger.info("Creating new session", {
+            userId: user._id,
+            sessionId,
+            ip: meta?.ip,
+        });
 
         const payload: TokenPayload = {
             id: user._id.toString(),
@@ -59,6 +66,7 @@ export const authService = {
         try {
             decoded = verifyRefreshToken(refreshToken) as TokenPayload;
         } catch {
+            logger.warn("Invalid refresh token attempt");
             throw new AppError("Invalid refresh token", 401);
         }
 
@@ -68,39 +76,37 @@ export const authService = {
         const sessionRaw = await redis.get(sessionKey);
 
         if (!sessionRaw) {
+            logger.warn("Refresh failed - session expired", { userId: id, sessionId });
             throw new AppError("Session expired", 401);
         }
 
         const session = JSON.parse(sessionRaw);
-
         const incomingHash = hashToken(refreshToken);
 
+        // 🚨 SECURITY CRITICAL
         if (session.refreshHash !== incomingHash) {
+            logger.warn("Refresh token reuse detected", {
+                userId: id,
+                sessionId,
+            });
+
             await redis.del(sessionKey);
+
             throw new AppError("Refresh token reuse detected", 401);
         }
 
-        // rotate tokens
-        const newAccessToken = generateAccessToken({
-            id,
-            role,
-            sessionId,
-        });
-
-        const newRefreshToken = generateRefreshToken({
-            id,
-            role,
-            sessionId,
-        });
+        // ✅ ROTATION
+        const newAccessToken = generateAccessToken({ id, role, sessionId });
+        const newRefreshToken = generateRefreshToken({ id, role, sessionId });
 
         session.refreshHash = hashToken(newRefreshToken);
 
-        await redis.set(
-            sessionKey,
-            JSON.stringify(session),
-            "EX",
-            7 * 24 * 60 * 60
-        );
+        await redis.set(sessionKey, JSON.stringify(session), "EX", 7 * 24 * 60 * 60);
+
+        logger.info("Refresh token rotated", {
+            userId: id,
+            sessionId,
+        });
 
         return {
             accessToken: newAccessToken,
@@ -117,10 +123,20 @@ export const authService = {
         const exists = await redis.get(key);
 
         if (!exists) {
+            logger.warn("Logout failed - session not found", {
+                userId,
+                sessionId,
+            });
+
             throw new AppError("Session not found", 404);
         }
 
         await redis.del(key);
+
+        logger.info("Session terminated", {
+            userId,
+            sessionId,
+        });
     },
 
     /**
@@ -130,9 +146,15 @@ export const authService = {
         const keys = await redis.keys(`session:${userId}:*`);
 
         if (!keys.length) {
+            logger.warn("Logout all - no active sessions", { userId });
             throw new AppError("No active sessions found", 404);
         }
 
         await redis.del(keys);
+
+        logger.info("All sessions terminated", {
+            userId,
+            count: keys.length,
+        });
     },
 };
