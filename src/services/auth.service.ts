@@ -51,7 +51,7 @@ export const authService = {
                 createdAt: Date.now(),
             }),
             "EX",
-            7 * 24 * 60 * 60
+            7 * 24 * 60 * 60    // 7 days
         );
 
         return { accessToken, refreshToken, sessionId };

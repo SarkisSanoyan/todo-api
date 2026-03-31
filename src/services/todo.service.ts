@@ -3,7 +3,7 @@ import { todoRepository } from "../repositories/todo.repository";
 import { AppError } from "../middleware/error.middleware";
 import { logger } from "../utils/logger";
 
-const CACHE_TTL = 60;
+const CACHE_TTL = 60;   // Cache time-to-live in seconds
 
 const cacheKey = (userId: string, page: number, limit: number) =>
     `todos:${userId}:p${page}:l${limit}`;
