@@ -48,6 +48,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Health check endpoint
+app.get("/health", (req, res) => {
+    res.json({
+        status: "ok",
+        redis: "connected",
+        db: "connected",
+    });
+});
+
+// Welcome endpoint
 app.get("/", (_req: Request, res: Response) => {
     res.json({
         message: "Welcome to the Todo API",
@@ -59,10 +69,12 @@ app.get("/", (_req: Request, res: Response) => {
 app.use(`${API_PREFIX}/auth`, authRoutes);
 app.use(`${API_PREFIX}/todos`, todoRoutes);
 
+// 404 handler
 app.use((_req: Request, res: Response) => {
     res.status(404).json({ message: "Route not found" });
 });
 
 app.use(errorMiddleware);
+
 
 

@@ -22,7 +22,7 @@ export const todoService = {
 
         if (cached) {
             logger.debug("Todos cache hit", { userId, page, limit });
-            return JSON.parse(cached);
+            return JSON.parse(cached as string);
         }
 
         logger.debug("Todos cache miss", { userId, page, limit });
@@ -32,7 +32,7 @@ export const todoService = {
             .skip((page - 1) * limit)
             .limit(limit);
 
-        await redis.set(key, JSON.stringify(todos), "EX", CACHE_TTL);
+        await redis.set(key, JSON.stringify(todos), { ex: CACHE_TTL });
         await redis.sadd(cacheSetKey(userId), key);
 
         return todos;
