@@ -3,8 +3,9 @@ import { todoRepository } from "../repositories/todo.repository";
 import { AppError } from "../middleware/error.middleware";
 import { logger } from "../utils/logger";
 
-const CACHE_TTL = 60;   // Cache time-to-live in seconds
+const CACHE_TTL = 60;
 
+// cache keys
 const cacheKey = (userId: string, page: number, limit: number) =>
     `todos:${userId}:p${page}:l${limit}`;
 
@@ -32,8 +33,11 @@ export const todoService = {
             .skip((page - 1) * limit)
             .limit(limit);
 
-        await redis.set(key, JSON.stringify(todos), { ex: CACHE_TTL });
-        await redis.sadd(cacheSetKey(userId), key);
+        await redis.set(key, JSON.stringify(todos), {
+            EX: CACHE_TTL,
+        });
+
+        await redis.sAdd(cacheSetKey(userId), key);
 
         return todos;
     },
@@ -55,25 +59,16 @@ export const todoService = {
         const todo = await todoRepository.findById(id);
 
         if (!todo) {
-            logger.warn("Update failed - not found", { userId, todoId: id });
             throw new AppError("Todo not found", 404);
         }
 
         if (todo.userId.toString() !== userId) {
-            logger.warn("Unauthorized todo update attempt", {
-                userId,
-                todoId: id,
-            });
-
             throw new AppError("Forbidden", 403);
         }
 
         const updated = await todoRepository.update(id, data);
 
-        logger.info("Todo updated", {
-            userId,
-            todoId: id,
-        });
+        logger.info("Todo updated", { userId, todoId: id });
 
         await this.invalidate(userId);
 
@@ -84,42 +79,34 @@ export const todoService = {
         const todo = await todoRepository.findById(id);
 
         if (!todo) {
-            logger.warn("Delete failed - not found", { userId, todoId: id });
             throw new AppError("Todo not found", 404);
         }
 
         if (todo.userId.toString() !== userId) {
-            logger.warn("Unauthorized todo delete attempt", {
-                userId,
-                todoId: id,
-            });
-
             throw new AppError("Forbidden", 403);
         }
 
         await todoRepository.delete(id);
 
-        logger.info("Todo deleted", {
-            userId,
-            todoId: id,
-        });
+        logger.info("Todo deleted", { userId, todoId: id });
 
         await this.invalidate(userId);
     },
 
     async invalidate(userId: string) {
         const setKey = cacheSetKey(userId);
-        const keys = await redis.smembers(setKey);
 
-        if (keys.length > 0) {
-            await redis.del(...keys);
+        const keys = (await redis.sMembers(setKey)) as string[];
 
-            logger.debug("Cache invalidated", {
-                userId,
-                keysRemoved: keys.length,
-            });
+        if (keys && keys.length > 0) {
+            await redis.del(keys);
         }
 
         await redis.del(setKey);
+
+        logger.debug("Cache invalidated", {
+            userId,
+            keysRemoved: keys?.length ?? 0,
+        });
     },
 };

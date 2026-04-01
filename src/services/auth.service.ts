@@ -50,7 +50,9 @@ export const authService = {
                 userAgent: meta?.userAgent || null,
                 createdAt: Date.now(),
             }),
-            { ex: 7 * 24 * 60 * 60 }   // 7 days
+            {
+                "EX": 7 * 24 * 60 * 60
+            }
         );
 
         return { accessToken, refreshToken, sessionId };
@@ -79,7 +81,7 @@ export const authService = {
             throw new AppError("Session expired", 401);
         }
 
-const session = JSON.parse(sessionRaw as string);
+        const session = JSON.parse(sessionRaw);
         const incomingHash = hashToken(refreshToken);
 
         // 🚨 SECURITY CRITICAL
@@ -100,7 +102,9 @@ const session = JSON.parse(sessionRaw as string);
 
         session.refreshHash = hashToken(newRefreshToken);
 
-        await redis.set(sessionKey, JSON.stringify(session), { ex: 7 * 24 * 60 * 60 });
+        await redis.set(sessionKey, JSON.stringify(session), {
+            "EX": 7 * 24 * 60 * 60
+        });
 
         logger.info("Refresh token rotated", {
             userId: id,
@@ -149,7 +153,7 @@ const session = JSON.parse(sessionRaw as string);
             throw new AppError("No active sessions found", 404);
         }
 
-        await Promise.all(keys.map((key) => redis.del(key)));
+        await redis.del(keys);
 
         logger.info("All sessions terminated", {
             userId,
