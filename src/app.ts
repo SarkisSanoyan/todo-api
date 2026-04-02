@@ -19,19 +19,13 @@ const API_PREFIX = "/api/v1";
 
 export const app = express();
 
-/**
- * Trust proxy (important for Railway / proxies / load balancers)
- */
+// Trust proxy (for correct client IPs behind proxies)
 app.set("trust proxy", 1);
 
-/**
- * Logging
- */
+// HTTP request logger (morgan)
 app.use(httpLogger);
 
-/**
- * CORS (dev setup — should later use env)
- */
+// CORS configuration (adjust origin as needed)
 app.use(
     cors({
         origin: "http://localhost:3000",
@@ -39,21 +33,15 @@ app.use(
     })
 );
 
-/**
- * Body parsing (with basic security limit)
- */
+// Body parsers
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-/**
- * Rate limiter (apply only to API routes)
- */
+// Rate limiter (100 requests per minute)
 app.use(API_PREFIX, createRateLimiter(100, 60));
 
-/**
- * Swagger docs
- */
+// Swagger UI setup
 app.use(
     "/api/v1/docs",
     swaggerUi.serve,
@@ -63,9 +51,7 @@ app.use(
     })
 );
 
-/**
- * Health check (REAL status)
- */
+// Health check endpoint
 app.get("/health", async (_req: Request, res: Response) => {
     const redisStatus = redis.isOpen ? "connected" : "disconnected";
     const dbStatus =
@@ -78,9 +64,7 @@ app.get("/health", async (_req: Request, res: Response) => {
     });
 });
 
-/**
- * Root endpoint
- */
+// Root endpoint
 app.get("/", (_req: Request, res: Response) => {
     res.json({
         message: "Welcome to the Todo API",
@@ -88,20 +72,14 @@ app.get("/", (_req: Request, res: Response) => {
     });
 });
 
-/**
- * Routes
- */
+// API routes
 app.use(`${API_PREFIX}/auth`, authRoutes);
 app.use(`${API_PREFIX}/todos`, todoRoutes);
 
-/**
- * 404 handler
- */
+// 404 handler
 app.use((_req: Request, res: Response) => {
     res.status(404).json({ message: "Route not found" });
 });
 
-/**
- * Global error handler (must be last)
- */
+// Global error handler
 app.use(errorMiddleware);

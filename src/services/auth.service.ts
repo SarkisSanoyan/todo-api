@@ -16,9 +16,6 @@ type TokenPayload = {
 };
 
 export const authService = {
-    /**
-     * ---------------- LOGIN (NEW SESSION) ----------------
-     */
     async login(
         user: { _id: string; role: string },
         meta?: { ip?: string; userAgent?: string }
@@ -58,9 +55,6 @@ export const authService = {
         return { accessToken, refreshToken, sessionId };
     },
 
-    /**
-     * ---------------- REFRESH ----------------
-     */
     async refresh(refreshToken: string) {
         let decoded: TokenPayload;
 
@@ -117,9 +111,6 @@ export const authService = {
         };
     },
 
-    /**
-     * ---------------- LOGOUT SINGLE SESSION ----------------
-     */
     async logout(userId: string, sessionId: string) {
         const key = `session:${userId}:${sessionId}`;
 
@@ -142,9 +133,6 @@ export const authService = {
         });
     },
 
-    /**
-     * ---------------- LOGOUT ALL SESSIONS ----------------
-     */
     async logoutAll(userId: string) {
         const keys = await redis.keys(`session:${userId}:*`);
 

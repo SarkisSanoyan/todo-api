@@ -3,13 +3,13 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import { app } from "./app";
-import { connectDB } from "./config/db";
+import { connectDB, disconnectDB } from "./config/db";
 import { redis } from "./config/redis";
 
 const PORT = Number(process.env.PORT) || 8080;
 
 async function startServer() {
-  try { 
+  try {
     // 1️⃣ DB first
     await connectDB();
 
@@ -31,11 +31,15 @@ async function startServer() {
   }
 }
 
-/**
- * Graceful shutdown
- */
+startServer();
+
+// Graceful shutdown handlers
 async function shutdown(signal: string) {
   console.log(`⚠️ Received ${signal}. Shutting down...`);
+
+  disconnectDB().catch((err) => {
+    console.error("Error during DB disconnect:", err);
+  });
 
   try {
     if (redis.isOpen) {
@@ -51,4 +55,13 @@ async function shutdown(signal: string) {
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 
-startServer();
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
+  shutdown("UNCAUGHT_EXCEPTION");
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+  shutdown("UNHANDLED_REJECTION");
+});
+

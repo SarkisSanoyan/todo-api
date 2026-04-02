@@ -5,10 +5,11 @@ import { logger } from "../utils/logger";
 
 const CACHE_TTL = 60;
 
-// cache keys
+// Cache key format: todos:{userId}:p{page}:l{limit}
 const cacheKey = (userId: string, page: number, limit: number) =>
     `todos:${userId}:p${page}:l${limit}`;
 
+// Set key format for tracking all cache keys per user: todos:keys:{userId}
 const cacheSetKey = (userId: string) =>
     `todos:keys:${userId}`;
 

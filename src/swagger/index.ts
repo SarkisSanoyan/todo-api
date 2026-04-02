@@ -4,7 +4,7 @@ export const swaggerDocument = {
     info: {
         title: "Todo API with Auth",
         version: "1.0.0",
-        description: "JWT auth + refresh token rotation + RBAC ready",
+        description: "JWT auth + refresh token rotation + Redis session management + MongoDB with Express.js / TypeScript",
     },
 
     servers: [
