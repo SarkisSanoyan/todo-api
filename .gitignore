@@ -43,3 +43,6 @@ debug.log
 
 # Redis / DB dumps (if any local files)
 dump.rdb
+
+# GitHub workflows (if you want to ignore them, otherwise remove this line)
+.github
