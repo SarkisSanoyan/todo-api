@@ -9,7 +9,7 @@ import { redis } from "./config/redis";
 const PORT = Number(process.env.PORT) || 8080;
 
 async function startServer() {
-  try {
+  try { 
     // 1️⃣ DB first
     await connectDB();
 
